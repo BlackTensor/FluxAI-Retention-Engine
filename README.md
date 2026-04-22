@@ -2,6 +2,10 @@
 
 FluxAI is an end-to-end customer retention and recovery platform designed to identify churn risks with precision and automate the recovery process. By combining state-of-the-art Gradient Boosting (**XGBoost**) with Explainable AI (**SHAP**) and Large Language Models (**Llama 3.2**), FluxAI provides a complete loop from risk detection to personalized retention strategy.
 
+## 📈 Business Impact
+
+FluxAI transforms raw churn data into actionable insights, reducing manual analysis time for Customer Success teams by providing instant, AI-generated recovery strategies. By proactively identifying at-risk customers and providing tailored intervention plans, organizations can significantly improve retention rates and customer lifetime value.
+
 ## 🚀 Key Features
 
 - **Predictive Scoring**: Uses a high-performance XGBoost model to score customers based on churn probability.
@@ -19,6 +23,10 @@ FluxAI is an end-to-end customer retention and recovery platform designed to ide
 - **Data Processing**: Pandas, NumPy
 - **Visualizations**: Plotly
 - **Model Persistence**: Joblib
+
+## 📊 Demo Data
+
+The repository includes a complex test dataset to demonstrate the model’s ability to identify "Ghost Users" and "Angry Veterans" through behavioral signals rather than just contract tenure. This dataset is optimized to show how FluxAI handles various churn personas in a real-world enterprise environment.
 
 ## 📦 Project Structure
 
@@ -56,12 +64,15 @@ ollama pull llama3.2
 streamlit run app.py
 ```
 
-## 📊 Model Training
+## 📉 Model Training
 If you wish to retrain the model on new data:
 ```bash
 python training/train_model.py
 ```
 This script will preprocess the data, train an XGBoost classifier, generate SHAP explainer artifacts, and save everything to the `models/` directory.
+
+## 📄 License
+Distributed under the MIT License.
 
 ## 👤 Author
 **Shayan Ansari**  
