@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+.DS_Store
+.ipynb_checkpoints/
+.streamlit/secrets.toml
+.venv/
+venv/
+env/
+# Models and data are included for demo purposes as they are small
+# models/*.pkl
+# data/*.csv
