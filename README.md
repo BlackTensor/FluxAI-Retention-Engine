@@ -2,6 +2,10 @@
 
 FluxAI is an end-to-end customer retention and recovery platform designed to identify churn risks with precision and automate the recovery process. By combining state-of-the-art Gradient Boosting (**XGBoost**) with Explainable AI (**SHAP**) and Large Language Models (**Llama 3.2**), FluxAI provides a complete loop from risk detection to personalized retention strategy.
 
+## 🔒 Enterprise-Grade Security
+
+Designed for enterprise security, FluxAI uses **local LLM inference (Ollama)** to ensure sensitive customer data remains within the secure local environment during strategy generation. This architectural choice eliminates the need for external API calls, providing total data privacy and compliance with enterprise security standards.
+
 ## 📈 Business Impact
 
 FluxAI transforms raw churn data into actionable insights, reducing manual analysis time for Customer Success teams by providing instant, AI-generated recovery strategies. By proactively identifying at-risk customers and providing tailored intervention plans, organizations can significantly improve retention rates and customer lifetime value.
