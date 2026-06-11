@@ -9,11 +9,18 @@ import os
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from utils.ollama_client import check_ollama
+
+
+@st.cache_data(ttl=30, show_spinner=False)
+def _check_ollama_cached():
+    return check_ollama()
+
 
 # ─── Page Configuration ─────────────────────────────────────────────
 st.set_page_config(
     page_title="FluxAI — Retention Engine",
-    page_icon="⚡",
+    page_icon=None,
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -254,7 +261,7 @@ with st.sidebar:
         # Onboarding is special (locked once done)
         if tab_key == 'onboarding':
             if is_complete:
-                st.markdown(f'<p style="color:#059669;font-size:0.85rem;padding:0.4rem 0.7rem;margin:0;font-weight:600;">✓ {label}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="color:#059669;font-size:0.85rem;padding:0.4rem 0.7rem;margin:0;font-weight:600;">{label}</p>', unsafe_allow_html=True)
             else:
                 st.markdown(f'<p style="color:#1E293B;font-weight:700;font-size:0.85rem;background:#F1F5F9;padding:0.4rem 0.7rem;border-radius:6px;border-left:3px solid #6366F1;margin:0;">{label}</p>', unsafe_allow_html=True)
             continue
@@ -284,8 +291,7 @@ with st.sidebar:
     else:
         st.markdown('<p style="font-size:0.75rem;color:#64748b;margin-bottom:0.2rem;"><span class="status-dot status-offline"></span>AI Engine: Offline</p>', unsafe_allow_html=True)
 
-    from utils.ollama_client import check_ollama
-    ollama_running, _ = check_ollama()
+    ollama_running, _ = _check_ollama_cached()
     if ollama_running:
         st.markdown('<p style="font-size:0.75rem;color:#64748b;margin-bottom:0.2rem;"><span class="status-dot status-processing"></span>Recovery: Ready</p>', unsafe_allow_html=True)
         st.markdown('<p style="font-size:0.7rem;color:#94A3B8;margin-left:16px;">Llama 3.2 (Local)</p>', unsafe_allow_html=True)
@@ -394,12 +400,12 @@ def _run_predictions():
         st.rerun()
 
     except FileNotFoundError:
-        st.error("⚠️ Model not found! Please train the model first.")
+        st.error("Model not found. Please train the model first.")
         st.code("python training/train_model.py", language="bash")
         st.session_state['phase'] = 'onboarding'
 
     except Exception as e:
-        st.error(f"❌ Analysis failed: {str(e)}")
+        st.error(f"Analysis failed: {str(e)}")
         if st.button("← Go Back"):
             st.session_state['phase'] = 'onboarding'
             st.rerun()

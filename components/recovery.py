@@ -25,7 +25,7 @@ def render_recovery(df):
     """, unsafe_allow_html=True)
 
     if 'selected_customer' not in st.session_state:
-        st.info("👆 Select a customer from the **Deep Dive** tab first to generate a recovery playbook.")
+        st.info("Select a customer from the **Deep Dive** tab first to generate a recovery playbook.")
         return
 
     customer = st.session_state['selected_customer']
@@ -78,7 +78,7 @@ def _generate_and_display(df, customer, customer_idx, model):
     <div style="text-align:center; padding:1.5rem 0 0.5rem 0;">
         <h3 style="font-weight:700; background:linear-gradient(135deg,#6366f1,#818cf8);
             -webkit-background-clip:text;-webkit-text-fill-color:transparent; margin-bottom:0.2rem;">
-            🤖 Recovery Engine Processing
+            Recovery Engine Processing
         </h3>
         <p style="color:#64748B; font-size:0.92rem;">Leveraging local intelligence for secure strategy drafting…</p>
     </div>
@@ -181,8 +181,8 @@ def _generate_and_display(df, customer, customer_idx, model):
         st.session_state['recovery_playbook'] = result
         _display_playbook(result, customer)
     else:
-        st.error(f"❌ {result.get('error', 'Unknown error')}")
-        st.info("💡 Tip: Try using a smaller model like `llama3.2:1b` for faster inference on CPU.")
+        st.error(result.get('error', 'Unknown error'))
+        st.info("Tip: Try using a smaller model like `llama3.2:1b` for faster inference on CPU.")
 
 
 def _display_playbook(result, customer):
@@ -236,11 +236,11 @@ def _display_playbook(result, customer):
     st.markdown("---")
     btn_col1, btn_col2, btn_col3 = st.columns([1, 1, 2])
     with btn_col1:
-        st.download_button(label="📥 Download MD", data=content,
+        st.download_button(label="Download MD", data=content,
             file_name=f"Recovery_{customer.get('customerID', 'unknown')}.md",
             mime="text/markdown", use_container_width=True)
     with btn_col2:
-        if st.button("🔄 Regenerate", use_container_width=True):
+        if st.button("Regenerate", use_container_width=True):
             if 'recovery_playbook' in st.session_state:
                 del st.session_state['recovery_playbook']
             st.rerun()
@@ -251,7 +251,7 @@ def _render_ollama_setup():
     st.markdown("""
     <div style="background: #FEF2F2; padding: 1.5rem;
         border-radius: 16px; border: 1px solid #DC262644;">
-        <h3 style="color: #DC2626; margin-top: 0;">⚠️ Ollama Not Detected</h3>
+        <h3 style="color: #DC2626; margin-top: 0;">Ollama Not Detected</h3>
         <p style="color: #334155;">
             The Recovery Engine requires <b>Ollama</b> running locally with a language model.
             This keeps your customer data 100% private — nothing leaves your machine.
@@ -280,8 +280,8 @@ def _render_ollama_setup():
     ollama serve
     ```
 
-    **Step 4:** Refresh this page 🔄
+    **Step 4:** Refresh this page
     """)
 
-    if st.button("🔄 Check Again", type="primary"):
+    if st.button("Check Again", type="primary"):
         st.rerun()

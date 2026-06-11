@@ -4,7 +4,6 @@ Trains on IBM Telco Churn dataset, saves model + preprocessor + SHAP explainer.
 """
 import os
 import sys
-import warnings
 import numpy as np
 import pandas as pd
 import joblib
@@ -18,8 +17,6 @@ from sklearn.metrics import (
 from xgboost import XGBClassifier
 from imblearn.over_sampling import SMOTE
 import shap
-
-warnings.filterwarnings('ignore')
 
 # Paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -106,7 +103,6 @@ def train_model(df, preprocessor, cat_cols, num_cols):
         n_estimators=300,
         objective='binary:logistic',
         eval_metric='logloss',
-        use_label_encoder=False,
         random_state=42,
         n_jobs=-1,
     )
@@ -159,7 +155,7 @@ def save_artifacts(model, preprocessor, feature_cols):
     joblib.dump(explainer, exp_path)
     print(f"       → SHAP explainer saved to {exp_path}")
 
-    print("\n[✓] All artifacts saved successfully!")
+    print("\n[OK] All artifacts saved successfully.")
 
 
 def main():

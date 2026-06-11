@@ -3,6 +3,7 @@ FluxAI — Predictor Module
 Loads trained model artifacts and provides prediction + SHAP explanation functions.
 """
 import os
+import threading
 import numpy as np
 import pandas as pd
 import joblib
@@ -10,6 +11,19 @@ import shap
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODELS_DIR = os.path.join(BASE_DIR, "models")
+
+
+def _unwrap_shap(shap_values):
+    """
+    Normalise SHAP output to a single 2-D ndarray (samples × features).
+
+    TreeExplainer returns a list [neg_class, pos_class] for binary classifiers
+    and a plain ndarray for regressors / single-output models.  We always want
+    the positive (churn) class.
+    """
+    if isinstance(shap_values, list):
+        return shap_values[1] if len(shap_values) > 1 else shap_values[0]
+    return shap_values
 
 
 class ChurnPredictor:
@@ -35,7 +49,7 @@ class ChurnPredictor:
             self._loaded = True
             return True
         except FileNotFoundError as e:
-            print(f"[✗] Model artifacts not found: {e}")
+            print(f"[ERROR] Model artifacts not found: {e}")
             print("[i] Run 'python training/train_model.py' first.")
             return False
 
@@ -50,16 +64,14 @@ class ChurnPredictor:
             if not self.load():
                 raise FileNotFoundError("Model artifacts not found. Run training first.")
 
-        # Prepare features — use only the columns the model was trained on
         feature_df = self._prepare_features(df)
         X = self.preprocessor.transform(feature_df)
 
-        # Predict probabilities
         probs = self.model.predict_proba(X)[:, 1]
 
-        # Add to result DataFrame
         result = df.copy()
         result['Churn_Probability'] = np.round(probs * 100, 2)
+
         # Use string Risk_Level to avoid Categorical comparison issues in filtering
         risk_labels = []
         for p in result['Churn_Probability']:
@@ -78,6 +90,10 @@ class ChurnPredictor:
     def explain(self, df, idx):
         """
         Get SHAP explanation for a single customer (by DataFrame position index).
+
+        Only the target row is preprocessed and scored — the full DataFrame is
+        never transformed, keeping this O(1) in dataset size.
+
         Returns dict with:
           - feature_names: list of feature names
           - shap_values: list of SHAP values
@@ -87,40 +103,33 @@ class ChurnPredictor:
             if not self.load():
                 return None
 
-        feature_df = self._prepare_features(df)
+        # Clamp idx before slicing so _prepare_features receives exactly one row
+        idx = max(0, min(idx, len(df) - 1))
+        feature_df = self._prepare_features(df.iloc[[idx]])
         X = self.preprocessor.transform(feature_df)
 
-        # Clamp idx to valid range
-        idx = max(0, min(idx, X.shape[0] - 1))
-
-        # Get SHAP values for the specific row
         try:
-            shap_values = self.explainer.shap_values(X[idx:idx+1])
+            raw = self.explainer.shap_values(X)
         except Exception:
             return None
 
-        # Build readable feature names from the preprocessor
         readable_names = self._get_readable_feature_names()
 
-        # Handle different SHAP output formats
         try:
-            if isinstance(shap_values, list):
-                sv = shap_values[1][0] if len(shap_values) > 1 else shap_values[0]
-            elif isinstance(shap_values, np.ndarray):
-                sv = shap_values[0]
-            else:
-                sv = shap_values[0]
-            sv_list = sv.tolist() if hasattr(sv, 'tolist') else list(sv)
+            sv = _unwrap_shap(raw)
+            # sv is now shape (1, n_features); take the single row
+            sv_list = sv[0].tolist() if hasattr(sv[0], 'tolist') else list(sv[0])
         except Exception:
             sv_list = [0.0] * len(readable_names)
 
         try:
-            if isinstance(self.explainer.expected_value, (int, float, np.floating)):
-                base = float(self.explainer.expected_value)
-            elif isinstance(self.explainer.expected_value, np.ndarray):
-                base = float(self.explainer.expected_value[-1])  # Take churn class
+            ev = self.explainer.expected_value
+            if isinstance(ev, (int, float, np.floating)):
+                base = float(ev)
+            elif isinstance(ev, np.ndarray):
+                base = float(ev[-1])  # churn (positive) class
             else:
-                base = float(self.explainer.expected_value)
+                base = float(ev)
         except Exception:
             base = 0.0
 
@@ -131,25 +140,35 @@ class ChurnPredictor:
         }
 
     def get_global_shap(self, df, max_samples=200):
-        """Get global SHAP values for feature importance summary."""
+        """
+        Get global SHAP feature importance using a random sample of rows.
+
+        Random sampling avoids positional bias that arises when data is sorted
+        (e.g., by risk score or customer ID).
+        """
         if not self._loaded:
-            self.load()
+            if not self.load():
+                raise FileNotFoundError("Model artifacts not found. Run training first.")
 
         feature_df = self._prepare_features(df)
-        sample_df = feature_df.head(max_samples)
+
+        n = min(len(feature_df), max_samples)
+        sample_df = feature_df.sample(n=n, random_state=42)
+
         X = self.preprocessor.transform(sample_df)
+        raw = self.explainer.shap_values(X)
 
-        shap_values = self.explainer.shap_values(X)
+        # Unwrap list output from binary classifiers before aggregating
+        sv = _unwrap_shap(raw)
+
         readable_names = self._get_readable_feature_names()
+        mean_abs = np.abs(sv).mean(axis=0)
 
-        # Mean absolute SHAP value per feature
-        mean_abs = np.abs(shap_values).mean(axis=0)
         importance = sorted(
             zip(readable_names, mean_abs),
             key=lambda x: x[1],
-            reverse=True
+            reverse=True,
         )
-
         return importance
 
     def get_top_drivers(self, df, max_rows=500) -> pd.Series:
@@ -169,28 +188,21 @@ class ChurnPredictor:
         try:
             feature_df = self._prepare_features(df.head(n))
             X = self.preprocessor.transform(feature_df)
-            shap_values = self.explainer.shap_values(X)   # (n, features)
+            raw = self.explainer.shap_values(X)
 
-            # Handle list output (binary classifiers sometimes return [neg, pos])
-            if isinstance(shap_values, list):
-                sv = shap_values[1] if len(shap_values) > 1 else shap_values[0]
-            else:
-                sv = shap_values
+            sv = _unwrap_shap(raw)   # shape (n, features)
 
-            # For each row pick the feature with highest |SHAP| value
-            top_idx = np.argmax(np.abs(sv), axis=1)        # shape (n,)
-            top_shap = sv[np.arange(n), top_idx]           # shape (n,)
+            top_idx = np.argmax(np.abs(sv), axis=1)   # shape (n,)
+            top_shap = sv[np.arange(n), top_idx]       # shape (n,)
 
             def _label(feat_name: str, shap_val: float) -> str:
-                """Turn a feature + SHAP direction into a readable label."""
                 fn = feat_name.strip()
                 direction = 'High' if shap_val > 0 else 'Low'
 
-                # Contract type — just use it directly
                 if fn.lower() == 'contract':
-                    return f'Contract Type'
+                    return 'Contract Type'
                 if fn.lower() in ('internetservice', 'internet service'):
-                    return f'Internet Service'
+                    return 'Internet Service'
                 if fn.lower() in ('tenure',):
                     return f'{direction} Tenure'
                 if fn.lower() in ('monthlycharges', 'monthly charges'):
@@ -203,7 +215,6 @@ class ChurnPredictor:
                     return 'No Online Security' if shap_val > 0 else 'Has Online Security'
                 if fn.lower() in ('seniorcitizen', 'senior citizen'):
                     return 'Senior Citizen' if shap_val > 0 else 'Not Senior'
-                # Generic fallback
                 return f'{direction} {fn}'
 
             labels = [
@@ -214,33 +225,28 @@ class ChurnPredictor:
         except Exception:
             labels = ['See Deep Dive'] * n
 
-        # Pad remaining rows (if df > max_rows) with a fallback label
         fallback = ['See Deep Dive'] * (len(df) - n)
-        result = pd.Series(labels + fallback, index=df.index)
-        return result
+        return pd.Series(labels + fallback, index=df.index)
 
     def _prepare_features(self, df):
         """Prepare a DataFrame to match the training feature set."""
         feature_df = df.copy()
 
-        # Ensure all expected columns exist
         for col in self.feature_names:
             if col not in feature_df.columns:
-                feature_df[col] = 0  # Default for missing columns
+                feature_df[col] = 0
 
-        # Handle numeric columns — coerce text like 'Free', 'N/A' to 0
         for num_col in ['TotalCharges', 'MonthlyCharges', 'tenure']:
             if num_col in feature_df.columns:
                 feature_df[num_col] = pd.to_numeric(
                     feature_df[num_col], errors='coerce'
                 ).fillna(0)
 
-        # Handle SeniorCitizen — convert to string if needed
         if 'SeniorCitizen' in feature_df.columns:
             feature_df['SeniorCitizen'] = feature_df['SeniorCitizen'].astype(str)
             feature_df['SeniorCitizen'] = feature_df['SeniorCitizen'].replace({
                 '0': 'No', '1': 'Yes',
-                '0.0': 'No', '1.0': 'Yes'
+                '0.0': 'No', '1.0': 'Yes',
             })
 
         return feature_df[self.feature_names]
@@ -255,14 +261,24 @@ class ChurnPredictor:
         return names
 
 
-# Singleton instance
-_predictor = None
+# ── Singleton ────────────────────────────────────────────────────────────────
+
+_predictor: "ChurnPredictor | None" = None
+_predictor_lock = threading.Lock()
 
 
-def get_predictor():
-    """Get or create the singleton ChurnPredictor."""
+def get_predictor() -> ChurnPredictor:
+    """
+    Return the process-wide ChurnPredictor, creating it on first call.
+
+    Double-checked locking ensures only one instance is ever created even when
+    multiple threads (e.g. the recovery playbook thread) call this simultaneously.
+    """
     global _predictor
     if _predictor is None:
-        _predictor = ChurnPredictor()
-        _predictor.load()
+        with _predictor_lock:
+            if _predictor is None:          # re-check inside the lock
+                instance = ChurnPredictor()
+                instance.load()
+                _predictor = instance       # assign only after full initialisation
     return _predictor

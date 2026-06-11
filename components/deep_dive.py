@@ -141,13 +141,13 @@ def _render_shap_chart(df, idx, customer):
                     gridcolor='#F1F5F9', zeroline=True, zerolinecolor='#CBD5E1', zerolinewidth=2),
                 yaxis=dict(color='#334155'),
                 paper_bgcolor='#FFFFFF', plot_bgcolor='#FAFAFA',
-                margin=dict(l=160, r=30, t=50, b=50), height=420)
+                margin=dict(l=200, r=30, t=50, b=50), height=420)
 
             st.plotly_chart(fig, use_container_width=True)
             st.markdown("""
             <div style="display: flex; gap: 2rem; justify-content: center; margin-top: -0.5rem;">
-                <span style="color: #DC2626;">🔴 Increases churn risk</span>
-                <span style="color: #059669;">🟢 Decreases churn risk</span>
+                <span style="color: #DC2626; font-weight: 600;">Increases churn risk</span>
+                <span style="color: #059669; font-weight: 600;">Decreases churn risk</span>
             </div>""", unsafe_allow_html=True)
         else:
             st.info("SHAP explanation not available for this customer.")
@@ -166,8 +166,9 @@ def _render_what_if_simulator(customer):
 
         col1, col2 = st.columns([2, 1])
         with col1:
-            c_tenure = st.slider("Tenure (Months)", 0, 72, int(customer.get('tenure', 0)), key="sim_tenure")
-            c_monthly = st.slider("Monthly Charges ($)", 0, 200, int(float(customer.get('MonthlyCharges', 0))), key="sim_monthly")
+            c_tenure = st.slider("Tenure (Months)", 0, 72, min(int(customer.get('tenure', 0)), 72), key="sim_tenure")
+            monthly_default = min(int(float(customer.get('MonthlyCharges', 0))), 200)
+            c_monthly = st.slider("Monthly Charges ($)", 0, 200, monthly_default, key="sim_monthly")
             contracts = ['Month-to-month', 'One year', 'Two year']
             current_contract = customer.get('Contract', 'Month-to-month')
             c_contract = st.selectbox("Contract Type", options=contracts,
@@ -206,6 +207,6 @@ def _render_what_if_simulator(customer):
                 <p style="color: {color}; font-weight: 600; margin-top: 0.5rem;">{arrow} {abs(delta):.1f}% change</p>
             </div>""", unsafe_allow_html=True)
             if delta < -5:
-                st.success("✅ Significant risk reduction identified!")
+                st.success("Significant risk reduction identified.")
             elif delta > 5:
-                st.warning("⚠️ This change increases churn risk.")
+                st.warning("This change increases churn risk.")

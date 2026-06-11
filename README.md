@@ -1,16 +1,16 @@
-# FluxAI — Enterprise Retention Engine ⚡
+# FluxAI — Enterprise Retention Engine
 
 FluxAI is an end-to-end customer retention and recovery platform designed to identify churn risks with precision and automate the recovery process. By combining state-of-the-art Gradient Boosting (**XGBoost**) with Explainable AI (**SHAP**) and Large Language Models (**Llama 3.2**), FluxAI provides a complete loop from risk detection to personalized retention strategy.
 
-## 🔒 Enterprise-Grade Security
+## Enterprise-Grade Security
 
 Designed for enterprise security, FluxAI uses **local LLM inference (Ollama)** to ensure sensitive customer data remains within the secure local environment during strategy generation. This architectural choice eliminates the need for external API calls, providing total data privacy and compliance with enterprise security standards.
 
-## 📈 Business Impact
+## Business Impact
 
 FluxAI transforms raw churn data into actionable insights, reducing manual analysis time for Customer Success teams by providing instant, AI-generated recovery strategies. By proactively identifying at-risk customers and providing tailored intervention plans, organizations can significantly improve retention rates and customer lifetime value.
 
-## 🚀 Key Features
+## Key Features
 
 - **Predictive Scoring**: Uses a high-performance XGBoost model to score customers based on churn probability.
 - **Explainable AI (XAI)**: Integrates SHAP (SHapley Additive exPlanations) to decompose every individual prediction, showing exactly *why* a customer is at risk.
@@ -18,7 +18,7 @@ FluxAI transforms raw churn data into actionable insights, reducing manual analy
 - **Interactive Deep Dives**: Drill down into individual customer profiles to view real-time risk drivers and historical tenure data.
 - **Enterprise UI**: A premium, responsive Streamlit-based dashboard optimized for customer success teams.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Frontend/Dashboard**: [Streamlit](https://streamlit.io/)
 - **Machine Learning**: [XGBoost](https://xgboost.readthedocs.io/), [Scikit-learn](https://scikit-learn.org/)
@@ -28,11 +28,11 @@ FluxAI transforms raw churn data into actionable insights, reducing manual analy
 - **Visualizations**: Plotly
 - **Model Persistence**: Joblib
 
-## 📊 Demo Data
+## Demo Data
 
-The repository includes a complex test dataset to demonstrate the model’s ability to identify "Ghost Users" and "Angry Veterans" through behavioral signals rather than just contract tenure. This dataset is optimized to show how FluxAI handles various churn personas in a real-world enterprise environment.
+The repository includes a complex test dataset to demonstrate the model's ability to identify "Ghost Users" and "Angry Veterans" through behavioral signals rather than just contract tenure. This dataset is optimized to show how FluxAI handles various churn personas in a real-world enterprise environment.
 
-## 📦 Project Structure
+## Project Structure
 
 ```text
 ├── .streamlit/          # Streamlit configuration and theme
@@ -44,7 +44,7 @@ The repository includes a complex test dataset to demonstrate the model’s abil
 └── app.py              # Main application entry point
 ```
 
-## ⚙️ Installation & Setup
+## Installation & Setup
 
 ### 1. Clone the Repository
 ```bash
@@ -68,17 +68,17 @@ ollama pull llama3.2
 streamlit run app.py
 ```
 
-## 📉 Model Training
+## Model Training
 If you wish to retrain the model on new data:
 ```bash
 python training/train_model.py
 ```
 This script will preprocess the data, train an XGBoost classifier, generate SHAP explainer artifacts, and save everything to the `models/` directory.
 
-## 📄 License
+## License
 Distributed under the MIT License.
 
-## 👤 Author
+## Author
 **Shayan Ansari**  
 
 ---

@@ -50,8 +50,6 @@ def render_dashboard(df):
     # --- KPI Cards ---
     _render_kpi_cards(df)
 
-    st.markdown("<div style='height: 1.5rem;'></div>", unsafe_allow_html=True)
-
     # --- Charts Row ---
     chart_col1, chart_col2 = st.columns(2)
 
@@ -212,13 +210,18 @@ def _render_risk_segments(df):
     st.plotly_chart(fig, use_container_width=True)
 
 
+@st.cache_data(show_spinner=False)
+def _compute_global_shap(df):
+    """Cached wrapper — recomputes only when the DataFrame content changes."""
+    from utils.predictor import get_predictor
+    predictor = get_predictor()
+    return predictor.get_global_shap(df, max_samples=min(200, len(df)))
+
+
 def _render_global_feature_importance(df):
     """Render global SHAP-based feature importance."""
-    from utils.predictor import get_predictor
-
     try:
-        predictor = get_predictor()
-        importance = predictor.get_global_shap(df, max_samples=min(200, len(df)))
+        importance = _compute_global_shap(df)
 
         if importance:
             top_n = importance[:12]  # Top 12
@@ -324,7 +327,7 @@ def _render_customer_table(df):
     export_col1, export_col2, export_col3 = st.columns([1, 1, 2])
     with export_col1:
         st.download_button(
-            label="📄 Download CSV",
+            label="Download CSV",
             data=csv,
             file_name="FluxAI_Analysis_Results.csv",
             mime="text/csv",
@@ -333,7 +336,7 @@ def _render_customer_table(df):
     if has_excel:
         with export_col2:
             st.download_button(
-                label="📊 Download Excel",
+                label="Download Excel",
                 data=excel_data,
                 file_name="FluxAI_Analysis_Results.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

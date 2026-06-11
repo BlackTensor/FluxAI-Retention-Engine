@@ -7,6 +7,7 @@ import io
 import re
 import pandas as pd
 import numpy as np
+import streamlit as st
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -124,17 +125,19 @@ def _fuzzy_rename_columns(df):
     return df, applied
 
 
-def generate_template():
+@st.cache_data(show_spinner=False)
+def generate_template() -> bytes:
     """
     Generate a downloadable Excel template with:
     - Sheet 1: Data (with example rows)
     - Sheet 2: Data Dictionary (column descriptions)
-    Returns BytesIO buffer.
+
+    Returns raw bytes so the result is safely cacheable (BytesIO has a mutable
+    seek position that would be stale on subsequent renders).
     """
     buffer = io.BytesIO()
 
     with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-        # Sheet 1: Data template with examples
         example_rows = [
             {
                 'customerID': 'CUST-00001', 'gender': 'Female', 'SeniorCitizen': 0,
@@ -162,15 +165,13 @@ def generate_template():
         data_df = pd.DataFrame(example_rows)
         data_df.to_excel(writer, sheet_name='Customer Data', index=False)
 
-        # Sheet 2: Data Dictionary
         dict_df = pd.DataFrame([
-            {'Column Name': k, 'Description': v, 'Required': '✓' if k in REQUIRED_COLUMNS else ''}
+            {'Column Name': k, 'Description': v, 'Required': 'Yes' if k in REQUIRED_COLUMNS else ''}
             for k, v in DATA_DICTIONARY.items()
         ])
         dict_df.to_excel(writer, sheet_name='Data Dictionary', index=False)
 
-    buffer.seek(0)
-    return buffer
+    return buffer.getvalue()
 
 
 def validate_upload(df):
@@ -194,7 +195,7 @@ def validate_upload(df):
     # --- Fuzzy column rename ---
     df, renames = _fuzzy_rename_columns(df)
     if renames:
-        warnings.append(f"🔄 Auto-mapped columns: {', '.join(renames)}")
+        warnings.append(f"Auto-mapped columns: {', '.join(renames)}")
 
     # --- Check for required columns (after fuzzy rename) ---
     missing = [col for col in REQUIRED_COLUMNS if col not in df.columns]
@@ -211,7 +212,7 @@ def validate_upload(df):
         cleaned['TotalCharges'] = pd.to_numeric(cleaned['TotalCharges'], errors='coerce')
         bad_tc = cleaned['TotalCharges'].isna().sum()
         if bad_tc > 0:
-            warnings.append(f"⚠️ {bad_tc} rows had non-numeric TotalCharges (set to 0).")
+            warnings.append(f"{bad_tc} rows had non-numeric TotalCharges (set to 0).")
         cleaned['TotalCharges'] = cleaned['TotalCharges'].fillna(0)
 
     # Coerce MonthlyCharges to numeric (handles text like "Free", "N/A")
@@ -219,7 +220,7 @@ def validate_upload(df):
         cleaned['MonthlyCharges'] = pd.to_numeric(cleaned['MonthlyCharges'], errors='coerce')
         bad_mc = cleaned['MonthlyCharges'].isna().sum()
         if bad_mc > 0:
-            warnings.append(f"⚠️ {bad_mc} rows had non-numeric MonthlyCharges (set to 0).")
+            warnings.append(f"{bad_mc} rows had non-numeric MonthlyCharges (set to 0).")
         cleaned['MonthlyCharges'] = cleaned['MonthlyCharges'].fillna(0)
 
     # Coerce tenure to numeric
@@ -227,7 +228,7 @@ def validate_upload(df):
         cleaned['tenure'] = pd.to_numeric(cleaned['tenure'], errors='coerce')
         bad_ten = cleaned['tenure'].isna().sum()
         if bad_ten > 0:
-            warnings.append(f"⚠️ {bad_ten} rows had non-numeric tenure (set to 0).")
+            warnings.append(f"{bad_ten} rows had non-numeric tenure (set to 0).")
         cleaned['tenure'] = cleaned['tenure'].fillna(0).astype(int)
 
     # Handle SeniorCitizen
@@ -262,7 +263,7 @@ def validate_upload(df):
 
     # Large dataset warning
     if len(cleaned) > 50000:
-        warnings.append("⚠️ Large dataset detected (>50,000 rows). Processing may be slow.")
+        warnings.append("Large dataset detected (>50,000 rows). Processing may be slow.")
 
     return True, cleaned, errors, warnings
 

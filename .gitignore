@@ -11,6 +11,7 @@ htmlcov/
 .venv/
 venv/
 env/
+.claude/
 # Models and data are included for demo purposes as they are small
 # models/*.pkl
 # data/*.csv

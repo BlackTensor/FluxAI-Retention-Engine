@@ -109,13 +109,13 @@ def render_onboarding():
 
         col_parse, col_clear = st.columns([1, 1])
         with col_parse:
-            if st.button("✅ Parse & Preview", type="primary", use_container_width=True, key="parse_btn"):
+            if st.button("Parse & Preview", type="primary", use_container_width=True, key="parse_btn"):
                 if pasted and pasted.strip():
                     _handle_paste(pasted)
                 else:
-                    st.warning("⚠️ Please paste some data first.")
+                    st.warning("Please paste some data first.")
         with col_clear:
-            if st.button("🗑️ Clear", use_container_width=True, key="clear_paste_btn"):
+            if st.button("Clear", use_container_width=True, key="clear_paste_btn"):
                 st.session_state.pop('paste_input', None)
                 st.session_state.pop('upload_preview', None)
                 st.session_state.pop('upload_warnings', None)
@@ -165,7 +165,7 @@ def render_onboarding():
                 st.warning(warn)
 
         # ── Action buttons FIRST — fully visible without scrolling ───
-        st.markdown(f"**✅ {len(preview_df)} rows detected** — ready to analyse.")
+        st.markdown(f"**{len(preview_df)} rows detected** — ready to analyse.")
         proceed_col, cancel_col = st.columns([2, 1])
         with proceed_col:
             if st.button("Begin Analysis", type="primary", use_container_width=True, key="proceed_btn"):
@@ -176,13 +176,13 @@ def render_onboarding():
                 st.session_state.pop('upload_warnings', None)
                 st.rerun()
         with cancel_col:
-            if st.button("✖ Cancel", use_container_width=True, key="cancel_btn"):
+            if st.button("Cancel", use_container_width=True, key="cancel_btn"):
                 st.session_state.pop('upload_preview', None)
                 st.session_state.pop('upload_warnings', None)
                 st.rerun()
 
         # ── Data preview below ────────────────────────────────────────
-        with st.expander("📊 Preview data (first 10 rows)", expanded=True):
+        with st.expander("Preview data (first 10 rows)", expanded=True):
             st.dataframe(preview_df.head(10), use_container_width=True, height=260)
             st.caption(f"{len(preview_df)} rows · {len(preview_df.columns)} columns detected")
 
@@ -198,7 +198,7 @@ def _handle_paste(text: str):
         df = pd.read_csv(io.StringIO(text), sep=separator)
 
         if df is None or len(df) == 0:
-            st.error("❌ No data rows found. Make sure the first row contains column headers.")
+            st.error("No data rows found. Make sure the first row contains column headers.")
             return
 
         # Strip leading/trailing whitespace from all column names
@@ -208,8 +208,8 @@ def _handle_paste(text: str):
 
         if not is_valid:
             for err in errors:
-                st.error(f"❌ {err}")
-            st.info(f"📋 Columns detected: {', '.join(df.columns.tolist())}")
+                st.error(err)
+            st.info(f"Columns detected: {', '.join(df.columns.tolist())}")
             return
 
         if warnings:
@@ -219,7 +219,7 @@ def _handle_paste(text: str):
         st.rerun()
 
     except Exception as e:
-        st.error(f"❌ Could not parse the pasted data: {str(e)}")
+        st.error(f"Could not parse the pasted data: {str(e)}")
         st.info("Make sure the data is comma or tab separated with a header row.")
 
 
@@ -230,7 +230,7 @@ def _handle_upload(uploaded_file):
             try:
                 df = pd.read_csv(uploaded_file)
             except pd.errors.EmptyDataError:
-                st.error("❌ The CSV file is empty — no data to process.")
+                st.error("The CSV file is empty — no data to process.")
                 return
             except UnicodeDecodeError:
                 uploaded_file.seek(0)
@@ -239,19 +239,19 @@ def _handle_upload(uploaded_file):
             try:
                 df = pd.read_excel(uploaded_file, sheet_name=0)
             except Exception as e:
-                st.error(f"❌ Could not read Excel file: {str(e)}")
+                st.error(f"Could not read Excel file: {str(e)}")
                 return
 
         if df is None or len(df) == 0:
-            st.error("❌ The uploaded file contains no data rows.")
+            st.error("The uploaded file contains no data rows.")
             return
 
         is_valid, cleaned, errors, warnings = validate_upload(df)
 
         if not is_valid:
             for err in errors:
-                st.error(f"❌ {err}")
-            st.info(f"📋 Columns found in your file: {', '.join(df.columns.tolist())}")
+                st.error(err)
+            st.info(f"Columns found in your file: {', '.join(df.columns.tolist())}")
             return
 
         if errors:
@@ -265,5 +265,5 @@ def _handle_upload(uploaded_file):
         st.rerun()
 
     except Exception as e:
-        st.error(f"❌ Failed to read file: {str(e)}")
+        st.error(f"Failed to read file: {str(e)}")
         st.info("Make sure the file is a valid CSV or Excel file with customer data.")

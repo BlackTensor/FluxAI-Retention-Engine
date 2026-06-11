@@ -15,7 +15,7 @@ def download_telco_dataset():
     output_path = os.path.join(DATA_DIR, "telco_churn.csv")
 
     if os.path.exists(output_path):
-        print(f"[✓] Dataset already exists at {output_path}")
+        print(f"[OK] Dataset already exists at {output_path}")
         return output_path
 
     # Public mirror of the IBM Telco Churn dataset
@@ -25,10 +25,10 @@ def download_telco_dataset():
     try:
         df = pd.read_csv(url)
         df.to_csv(output_path, index=False)
-        print(f"[✓] Saved {len(df)} rows to {output_path}")
+        print(f"[OK] Saved {len(df)} rows to {output_path}")
         return output_path
     except Exception as e:
-        print(f"[✗] Download failed: {e}")
+        print(f"[FAIL] Download failed: {e}")
         print("[i] Generating synthetic dataset instead...")
         return generate_synthetic_dataset(output_path)
 
@@ -80,7 +80,7 @@ def generate_synthetic_dataset(output_path):
     df['Churn'] = np.where(np.random.random(n) < churn_prob, 'Yes', 'No')
 
     df.to_csv(output_path, index=False)
-    print(f"[✓] Generated synthetic dataset with {n} rows at {output_path}")
+    print(f"[OK] Generated synthetic dataset with {n} rows at {output_path}")
     return output_path
 
 
@@ -135,7 +135,7 @@ def generate_sample_data():
     df['Churn'] = np.where(np.random.random(n) < churn_prob, 'Yes', 'No')
 
     df.to_csv(output_path, index=False)
-    print(f"[✓] Generated sample dataset with {n} rows at {output_path}")
+    print(f"[OK] Generated sample dataset with {n} rows at {output_path}")
     return output_path
 
 
